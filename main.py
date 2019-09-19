@@ -5,6 +5,9 @@ import datetime
 
 app=gui("Check-in Application")
 
+app.setIcon("images/appLogo.ico")
+
+
 backend.saveLogs("<====================================<>====================================>")
 backend.saveLogs("======> This session starts at " + str(datetime.datetime.now()))
 
@@ -16,17 +19,26 @@ backend.saveLogs("======> This session starts at " + str(datetime.datetime.now()
 
 def launch(win):
     
-    if win == 'exit' :
-        app.showSubWindow('exit')
+    try:
+        app.showSubWindow(win)
+    except:
+        pass
+
+    # if win == 'exit' :
+    #     app.showSubWindow('exit')
     
-    elif win == 'Setting' :
-        app.showSubWindow('Setting')
+    # elif win == 'Setting' :
+    #     app.showSubWindow('Setting')
+
+    # elif win == "sureOfFileName":
+    #     app.showSubWindow('sureOfFileName')
 
 
 setting_saved = False
+isOldFile = False
 
 def launch_setting (win) :
-    global setting_saved
+    global setting_saved,isOldFile
     
     if win == 'importConfigurations' and setting_saved == False :
         try:
@@ -57,27 +69,33 @@ def launch_setting (win) :
                             if attendeesInformation[0] != "" and attendeesInformation[1] != "" and attendeesInformation[2] != "" and attendeesInformation[3] != "" and attendeesInformation[4] != "":
                                 if attendeesInformation[0].isalpha() and attendeesInformation[1].isalpha() and attendeesInformation[2].isalpha() and attendeesInformation[3].isalpha() and attendeesInformation[4].isalpha() :
                                     if len(attendeesInformation[0]) == 1 and len(attendeesInformation[1]) == 1 and len(attendeesInformation[2]) == 1 and len(attendeesInformation[3]) == 1 and len(attendeesInformation[4]) == 1 :
-                                        fileAvalability = backend.changeSettings(app.getEntry("labtopDeviceNumber"),app.getEntry("filePath"),attendeesInformation,workshopsColumns)
+                                        fileAvalability = backend.changeSettings(app.getEntry("labtopDeviceNumber"),app.getEntry("filePath"),attendeesInformation,workshopsColumns,isOldFile)
                                         if not fileAvalability:
                                             app.setLabel('warning','Check the file path and make sure to close it')
-                                        else:                                        
-                                        
-                                            app.setButtonImage('save_setting', 'images/switch-7.gif')
-                                            setting_saved = True
-                                            app.disableEntry("labtopDeviceNumber")
-                                            app.disableEntry("filePath")
-                                            app.disableEntry("workshopColumn1")
-                                            app.disableEntry("workshopColumn2")
-                                            app.disableEntry("workshopColumn3")
-                                            app.disableButton("importConfigurations")
-                                            app.disableEntry("namesColumn")
-                                            app.disableEntry("codesColumn")
-                                            app.disableEntry("phonesColumn")
-                                            app.disableEntry("NIDsColumn")
-                                            app.disableEntry("todayColumn")
-                                        
-                                            app.setTransparency(100)
-                                            app.setLabel('warning','')
+                                        else:
+                                            if fileAvalability == "workWithOldFile":
+                                                launch("sureOfFileName")
+                                                # app.setLabel('warning',"There is a file with the same name and device number, Do you want to work with it?")
+
+                                            else:
+                                                isOldFile = False
+                                                app.setButtonImage('save_setting', 'images/switch-7.gif')
+                                                setting_saved = True
+                                                app.disableEntry("labtopDeviceNumber")
+                                                app.disableEntry("filePath")
+                                                app.disableEntry("workshopColumn1")
+                                                app.disableEntry("workshopColumn2")
+                                                app.disableEntry("workshopColumn3")
+                                                app.disableButton("importConfigurations")
+                                                app.disableEntry("namesColumn")
+                                                app.disableEntry("codesColumn")
+                                                app.disableEntry("phonesColumn")
+                                                app.disableEntry("NIDsColumn")
+                                                app.disableEntry("todayColumn")
+                                            
+                                                app.setTransparency(100)
+                                                app.setLabel('warning','')
+                                                app.enableEntry('givenNumber')
                                     else:
                                         app.setLabel('warning',"Names,IDs,Phones,NIDs and Today fields must have only one character")
                                 else:
@@ -118,6 +136,8 @@ def launch_exit (win) :
     global yesCounter
     
     if win == 'no' :
+        yesCounter = 0
+        
         app.hideSubWindow('exit')
         app.hideButton('use hard exit')
         app.showButton('yes')
@@ -141,15 +161,66 @@ def launch_exit (win) :
     
     elif win == 'use hard exit':
         backend.forceSavingFile()
-        backend.saveLogs("===\//===> Sheet was forced to be saved and closed " +
+        backend.saveLogs(r"===\/===> Sheet was forced to be saved and closed " +
                  str(datetime.datetime.now()))
         backend.saveLogs("======> This session ended by closing the application at " + str(datetime.datetime.now()))
         backend.saveLogs("<====================================<>====================================>")
         app.stop()
 
 
+def launch_sureOfFileName(win):
+    global isOldFile
+
+    if win == 'use it':
+        isOldFile = True
+        backend.saveLogs("==> User chose to use the old file at " + str(datetime.datetime.now()))
+
+    elif win == "overwrite":
+        isOldFile = "overwrite"
+        backend.saveLogs("==> User chose to overwrite the old file at " + str(datetime.datetime.now()))
+
+    elif win == "cancel":
+        pass
+
+    app.hideSubWindow('sureOfFileName')
+    app.showSubWindow('Setting')
+    launch_setting("save_setting")
+
+
 ########################################################################### all sub windows
         
+################################################### this is a pop-up - making sure of file name
+            
+app.startSubWindow("sureOfFileName", title="Duplicated File!",modal=True,blocking=True)
+app.setBg('seashell')
+
+app.setSticky("we")
+
+app.addLabel('sureOfFileName','There is a file in the this directory with the same file name and laptop number, what to do?',0,0,3)
+app.setLabelFg('sureOfFileName','MediumSeaGreen')
+app.getLabelWidget("sureOfFileName").config(font="Arial  14")
+
+app.setSticky("news")
+
+app.addButton('overwrite',launch_sureOfFileName,1,0)
+app.addButton('use it',launch_sureOfFileName,1,1)
+app.addButton('cancel',launch_sureOfFileName,1,2)
+app.setButtonRelief("overwrite", "flat")
+app.setButtonRelief("use it", "flat")
+app.setButtonRelief("cancel", "flat")
+app.setButtonBg('overwrite','MediumSeaGreen')
+app.setButtonBg('use it','MediumSeaGreen')
+app.setButtonBg('cancel','MediumSeaGreen')
+app.setButtonFg('overwrite','seashell')
+app.setButtonFg('use it','seashell')
+app.setButtonFg('cancel','seashell')
+
+
+app.setResizable(canResize=False)
+app.setGeometry("1000x250")
+app.stopSubWindow()
+
+
 ################################################### this is a pop-up - exit
             
 app.startSubWindow("exit", modal=True,blocking=False)
@@ -202,7 +273,7 @@ app.getLabelWidget("lab").config(font="Corbel  18")
 app.addNumericEntry("labtopDeviceNumber",2,0,3)
 app.setEntryDefault("labtopDeviceNumber", "0")
 app.setEntryBg('labtopDeviceNumber','white')
-app.setFileEntryRelief("labtopDeviceNumber", "flat")
+app.setEntryRelief("labtopDeviceNumber", "flat")
 
 ### file path area
 
@@ -313,12 +384,8 @@ app.stopSubWindow()
 #############
 # main function for searching
 
-# takeActionUsingKeys = 0  # variable to let the binding keys work
 
 def searchingForName(btn):
-    # global takeActionUsingKeys
-
-    # takeActionUsingKeys = 1
 
     app.disableEntry('givenNumber')
 
@@ -337,83 +404,117 @@ def searchingForName(btn):
 # function for searching using code
 
 def searchForCode (givenNumber):
+    global setting_saved
 
     return_data = backend.searchForCode(givenNumber)
     
 
     if return_data :
-        returnedName = return_data[0]
-        returnedCode = return_data[1]
-        workshop1=return_data[2]
-        workshop2=return_data[3]
-        workshop3=return_data[4]
-        
-        app.setLabel("name", returnedName + ' - ' + str(returnedCode))
-        app.setLabel("about", workshop1 + " | " + workshop2 + " | " + workshop3)
 
-        app.showButton('right')
-        app.showButton('wrong')
-        # app.disableEntry('code')
-        # app.disableEntry('phone')
+        if return_data != "wrong with initiation":
+
+            returnedName = return_data[0]
+            returnedCode = return_data[1]
+            workshop1=return_data[2]
+            workshop2=return_data[3]
+            workshop3=return_data[4]
+            
+            app.setLabel("name", returnedName + ' - ' + str(returnedCode))
+            app.setLabel("about", workshop1 + " | " + workshop2 + " | " + workshop3)
+
+            app.showButton('right')
+            app.showButton('wrong')
+            # app.disableEntry('code')
+            # app.disableEntry('phone')
+
+        else:
+            setting_saved = False
+            app.showSubWindow('Setting')
+            launch_setting('save_setting')
+
 
     else :
         
         app.setLabel("name", "This ID isn't in database")
         app.setLabel("about", "Try writing it again carefully")
+        app.enableEntry('givenNumber')
+        app.setEntryFocus('givenNumber')
 
 
 #############
 # function for searching using phone number
 
 def searchForPhone (givenNumber):
+    global setting_saved
     
     return_data = backend.searchForPhone(givenNumber)
 
     if return_data :
-        returnedName = return_data[0]
-        returnedCode = return_data[1]
-        workshop1=return_data[2]
-        workshop2=return_data[3]
-        workshop3=return_data[4]
-        
-        app.setLabel("name", returnedName + ' - ' + str(returnedCode))
-        app.setLabel("about", workshop1 + " | " + workshop2 + " | " + workshop3)
 
-        app.showButton('right')
-        app.showButton('wrong')
-        # app.disableEntry('code')
-        # app.disableEntry('phone')
+        if return_data != "wrong with initiation":
+
+
+            returnedName = return_data[0]
+            returnedCode = return_data[1]
+            workshop1=return_data[2]
+            workshop2=return_data[3]
+            workshop3=return_data[4]
+            
+            app.setLabel("name", returnedName + ' - ' + str(returnedCode))
+            app.setLabel("about", workshop1 + " | " + workshop2 + " | " + workshop3)
+
+            app.showButton('right')
+            app.showButton('wrong')
+            # app.disableEntry('code')
+            # app.disableEntry('phone')
+
+        else:
+            setting_saved = False
+            app.showSubWindow('Setting')
+            launch_setting('save_setting')
 
     else :
         app.setLabel("name", "This phone isn't in database")
         app.setLabel("about", "Try writing it again carefully")
+        app.enableEntry('givenNumber')
+        app.setEntryFocus('givenNumber')
 
 
 #############
 # function for searching using National ID
 
 def searchForNID (givenNumber):
+    global setting_saved
     
     return_data = backend.searchForNID(givenNumber)
 
     if return_data :
-        returnedName = return_data[0]
-        returnedCode = return_data[1]
-        workshop1=return_data[2]
-        workshop2=return_data[3]
-        workshop3=return_data[4]
-        
-        app.setLabel("name", returnedName + ' - ' + str(returnedCode))
-        app.setLabel("about", workshop1 + " | " + workshop2 + " | " + workshop3)
+        if return_data != "wrong with initiation":
 
-        app.showButton('right')
-        app.showButton('wrong')
-        # app.disableEntry('code')
-        # app.disableEntry('phone')
+            returnedName = return_data[0]
+            returnedCode = return_data[1]
+            workshop1=return_data[2]
+            workshop2=return_data[3]
+            workshop3=return_data[4]
+            
+            app.setLabel("name", returnedName + ' - ' + str(returnedCode))
+            app.setLabel("about", workshop1 + " | " + workshop2 + " | " + workshop3)
+
+            app.showButton('right')
+            app.showButton('wrong')
+            # app.disableEntry('code')
+            # app.disableEntry('phone')
+            
+        else:
+            setting_saved = False
+            app.showSubWindow('Setting')
+            launch_setting('save_setting')
 
     else :
         app.setLabel("name", "This national ID isn't in database")
         app.setLabel("about", "Try writing it again carefully")
+        app.enableEntry('givenNumber')
+        app.setEntryFocus('givenNumber')
         
 
 
@@ -462,7 +563,10 @@ app.setButtonRelief("Setting", "flat")
 
 #####################
 
-app.addLabel('vertical_space','',1,0,1,4)
+app.addLabel('vertical_space_left','',1,0,1,4)
+app.addLabel('vertical_space_right','',1,5,1,4)
+
+
 
 
 app.setBg('seashell')
@@ -496,48 +600,60 @@ app.setBg('seashell')
 
 
 app.setSticky('we')
-app.addNumericEntry('givenNumber', 1, 1, 3)
-app.getEntryWidget("givenNumber").config(font="Arial 28")
-app.setEntryBg('givenNumber', 'Gainsboro')
+app.addNumericEntry('givenNumber', 1, 1, 4)
+app.getEntryWidget("givenNumber").config(font=("arial", "30", "normal"))
+app.setEntryBg('givenNumber', 'white')
+app.setEntryRelief("givenNumber", "sunken")
+app.setEntryAlign("givenNumber", 'center')
+
+
 
 
 app.setSticky('we')
-app.addImageButton('givenNumber', searchingForName,
-                   'images/code.gif', 1, 4, 1)
-app.setButtonBg('givenNumber', 'silver')
-app.setButtonRelief("givenNumber", "groove")
-app.setButtonActiveBg('givenNumber', 'silver')
+# app.addImageButton('givenNumber', searchingForName,
+#                    'images/code.gif', 1, 4, 1)
+# app.setButtonBg('givenNumber', 'silver')
+# app.setButtonRelief("givenNumber", "groove")
+# app.setButtonActiveBg('givenNumber', 'silver')
 app.setEntrySubmitFunction("givenNumber", searchingForName)
+# app.getButtonWidget("givenNumber").config(font="Arial  18")
 
 
 app.setSticky('news')
 
-app.addLabel('name','name will be shown here',2,1,4)
+app.addLabel('name','Type ID, Mobile Number or National ID',2,1,4)
 app.setLabelFg('name','white')
 app.setLabelBg('name','LimeGreen')
 app.getLabelWidget("name").config(font="Corbel 30")
 
-app.addLabel('about','data is here',3,1,4)
+app.addLabel('about','',3,1,4)
 app.setLabelFg('about','LimeGreen')
 app.setLabelBg('about','white')
 app.getLabelWidget("about").config(font="Corbel 24")
 
-app.addImageButton('right',confirm_func_attend, 'images/like.gif',4,1,2)
+
+
+app.setSticky('news')
+
+app.addImageButton('right',confirm_func_attend, 'images/like.gif',  4,1,3)
 app.setButtonBg('right','white')
 app.setButtonActiveBg('right', 'white')
 app.setButtonRelief("right", "flat")
 
 
-app.addImageButton('wrong',confirm_func_not_attend, 'images/dislike.gif',4,3,2)
+app.addImageButton('wrong',confirm_func_not_attend, 'images/dislike.gif',4,4,1)
 app.setButtonBg('wrong','white')
 app.setButtonActiveBg('wrong', 'white')
 app.setButtonRelief("wrong", "flat")
+
 
 app.hideButton('right')
 app.hideButton('wrong')
 
 
-app.addLabel('horizontal_space','',5,1,4)
+app.addLabel('horizontal_space_top','',0,0,4)
+app.addLabel('horizontal_space_bottom','',5,0,6)
+
 
 
 #function that work to make setting appear after opening app
@@ -546,7 +662,6 @@ def openSettingWindow() :
 app.after(100, openSettingWindow)
 
 app.setTitle("Check-in Application")
-app.setIcon("images/appLogo.ico")
 app.setTransparency(70)
 app.setGeometry("fullscreen")
 app.go()

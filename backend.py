@@ -12,6 +12,13 @@ import psutil
 def searchForNID(NID):
     global rowNumber
 
+    if NIDsColumn == "":
+        saveLogs("===> National IDs column wasn't initiated at " +
+                 str(datetime.datetime.now()))
+        return "wrong with initiation"
+
+    NID = str(NID)
+
     rowNumber = '2'
     saveLogs("==> Search for National ID "+str(NID))
 
@@ -25,7 +32,7 @@ def searchForNID(NID):
             rowNumber = str(rowNumber)
 
         else:
-            cellValue = int(cellValue)
+            cellValue = str(cellValue)
 
             if cellValue != NID:
                 rowNumber = int(rowNumber)
@@ -46,6 +53,13 @@ def searchForNID(NID):
 def searchForPhone(phone):
     global rowNumber
 
+    if phonesColumn == "":
+        saveLogs("===> Phones column wasn't initiated at " +
+                 str(datetime.datetime.now()))
+        return "wrong with initiation"
+
+    phone = str(phone)
+
     rowNumber = '2'
     saveLogs("==> Search for PHONE "+str(phone))
 
@@ -59,7 +73,7 @@ def searchForPhone(phone):
             rowNumber = str(rowNumber)
 
         else:
-            cellValue = int(cellValue)
+            cellValue = str(cellValue)
 
             if cellValue != phone:
                 rowNumber = int(rowNumber)
@@ -79,8 +93,15 @@ def searchForPhone(phone):
 def searchForCode(code):
     global rowNumber
 
+    if codesColumn == "":
+        saveLogs("===> Codes column wasn't initiated at " +
+                 str(datetime.datetime.now()))
+        return "wrong with initiation"
+
+    code = str(code)
+
     rowNumber = '2'
-    saveLogs("==> Search for ID "+str(code))
+    saveLogs("==> Search for ID "+code)
 
     while sheet[codesColumn + rowNumber].value != None:
 
@@ -92,7 +113,7 @@ def searchForCode(code):
             rowNumber = str(rowNumber)
 
         else:
-            cellValue = int(cellValue)
+            cellValue = str(cellValue)
 
             if cellValue != code:
                 rowNumber = int(rowNumber)
@@ -155,7 +176,7 @@ def returningData(rowNumber):
 
 
 # function that saves variables of setting
-def changeSettings(labtopNumber, filePath, attendeesInformation, workshops):
+def changeSettings(labtopNumber, filePath, attendeesInformation, workshops, isOldFile):
     global labtopDeviceNumber, sheet, wb, workshopsColumns, namesColumn, codesColumn, NIDsColumn, todayColumn, fileName, phonesColumn
 
     saveLogs(
@@ -184,14 +205,26 @@ def changeSettings(labtopNumber, filePath, attendeesInformation, workshops):
     try:
         # if file was already made in same folder of the app then open it
         # checkingIfFileOpen of that file was checked in the try before
-        wb = o.load_workbook(fileName + " - " +
-                             str(labtopDeviceNumber) + '.xlsx')
-        sheet = wb.active
-        saveLogs(
-            "==> Opened file from the same folder at " + str(datetime.datetime.now()))
-        saveLogs(
-            "=> File name is  " + fileName + " - " +
-            str(labtopDeviceNumber) + '.xlsx')
+
+        if not os.path.exists(fileName + " - " + str(labtopDeviceNumber) + '.xlsx'):
+            raise ValueError('A very specific bad thing happened')
+
+        if isOldFile == False:
+            saveLogs(
+                "==> Tried to open file " + fileName + " - " +
+                str(labtopDeviceNumber) + '.xlsx' + " and asked for permission at " + str(datetime.datetime.now()))
+            return ("workWithOldFile")
+
+        elif isOldFile == "overwrite":
+            raise ValueError('A very specific bad thing happened')
+
+        else:
+            wb = o.load_workbook(fileName + " - " +
+                                 str(labtopDeviceNumber) + '.xlsx')
+            sheet = wb.active
+            saveLogs(
+                "==> Opened file from the same folder at " + str(datetime.datetime.now()))
+
     except:
         try:
             # else if there was no file in the same folder work on a new one
@@ -212,7 +245,7 @@ def changeSettings(labtopNumber, filePath, attendeesInformation, workshops):
                      str(datetime.datetime.now()))
             saveLogs(
                 "=> File path is  " + filePath)
-            return False  # means that file not available
+            return False  # means that file is not available
 
     workshopsColumns = workshops
 
